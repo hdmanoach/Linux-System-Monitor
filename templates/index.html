@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moniteur Système Linux</title>
+    <style>
+        /* Styles CSS pour une présentation simple et lisible */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        .metric {
+            background-color: #e9ecef;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .metric strong {
+            font-size: 1.1em;
+        }
+        .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #28a745; /* Vert par défaut */
+        }
+        .alert {
+            color: #dc3545; /* Rouge pour les alertes */
+        }
+        .warning {
+            color: #ffc107; /* Orange pour les avertissements */
+        }
+        .message-area {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #ffeeba;
+            border: 1px solid #ffc107;
+            color: #856404;
+            display: none; /* Caché par défaut */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Moniteur Système Linux</h1>
+        <p>Affichage en temps réel de l'utilisation du CPU, de la mémoire et du disque.</p>
+
+        <div id="message-area" class="message-area">
+            <!-- Les messages d'alerte s'afficheront ici -->
+        </div>
+
+        <div class="metric">
+            <strong>Utilisation CPU:</strong>
+            <span id="cpu-usage" class="value">--%</span>
+        </div>
+
+        <div class="metric">
+            <strong>Utilisation Mémoire:</strong>
+            <span id="memory-usage" class="value">--%</span>
+        </div>
+        <div class="metric">
+            <strong>Mémoire Utilisée:</strong>
+            <span id="memory-used" class="value">-- GB</span> /
+            <span id="memory-total" class="value">-- GB</span>
+        </div>
+
+        <div class="metric">
+            <strong>Utilisation Disque:</strong>
+            <span id="disk-usage" class="value">--%</span>
+        </div>
+        <div class="metric">
+            <strong>Disque Utilisé:</strong>
+            <span id="disk-used" class="value">-- GB</span> /
+            <span id="disk-total" class="value">-- GB</span>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour récupérer les données du serveur Flask
+        async function fetchSystemData() {
+            try {
+                const response = await fetch('/data'); // Appel de l'API /data
+                const data = await response.json();    // Conversion de la réponse en JSON
+
+                // Mise à jour de l'affichage du CPU
+                document.getElementById('cpu-usage').textContent = `${data.cpu_percent}%`;
+                updateMetricStyle('cpu-usage', data.cpu_percent);
+
+                // Mise à jour de l'affichage de la mémoire
+                document.getElementById('memory-usage').textContent = `${data.memory_percent}%`;
+                document.getElementById('memory-used').textContent = `${data.memory_used_gb}`;
+                document.getElementById('memory-total').textContent = `${data.memory_total_gb}`;
+                updateMetricStyle('memory-usage', data.memory_percent);
+
+                // Mise à jour de l'affichage du disque
+                document.getElementById('disk-usage').textContent = `${data.disk_percent}%`;
+                document.getElementById('disk-used').textContent = `${data.disk_used_gb}`;
+                document.getElementById('disk-total').textContent = `${data.disk_total_gb}`;
+                updateMetricStyle('disk-usage', data.disk_percent);
+
+                // Vérification des seuils d'alerte
+                checkThresholds(data);
+
+            } catch (error) {
+                console.error('Erreur lors de la récupération des données système:', error);
+                displayMessage('Impossible de récupérer les données système. Le serveur est-il en marche ?', 'alert');
+            }
+        }
+
+        // Fonction pour changer la couleur du texte en fonction du pourcentage
+        function updateMetricStyle(elementId, value) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('alert', 'warning'); // Supprime les classes précédentes
+            if (value > 80) {
+                element.classList.add('alert'); // Rouge si > 80%
+            } else if (value > 60) {
+                element.classList.add('warning'); // Orange si > 60%
+            }
+        }
+
+        // Fonction pour vérifier les seuils et afficher des alertes
+        function checkThresholds(data) {
+            let messages = [];
+            const messageArea = document.getElementById('message-area');
+            messageArea.innerHTML = ''; // Réinitialise les messages précédents
+            messageArea.style.display = 'none';
+
+            if (data.cpu_percent > 85) {
+                messages.push(`Alerte: Utilisation CPU très élevée (${data.cpu_percent}%) !`);
+            } else if (data.cpu_percent > 70) {
+                messages.push(`Attention: Utilisation CPU élevée (${data.cpu_percent}%).`);
+            }
+
+            if (data.memory_percent > 85) {
+                messages.push(`Alerte: Utilisation Mémoire très élevée (${data.memory_percent}%) !`);
+            } else if (data.memory_percent > 70) {
+                messages.push(`Attention: Utilisation Mémoire élevée (${data.memory_percent}%).`);
+            }
+
+            if (data.disk_percent > 90) {
+                messages.push(`Alerte: Utilisation Disque très élevée (${data.disk_percent}%) !`);
+            } else if (data.disk_percent > 80) {
+                messages.push(`Attention: Utilisation Disque élevée (${data.disk_percent}%).`);
+            }
+
+            if (messages.length > 0) {
+                messages.forEach(msg => {
+                    const p = document.createElement('p');
+                    p.textContent = msg;
+                    messageArea.appendChild(p);
+                });
+                messageArea.style.display = 'block'; // Affiche la zone de message
+            }
+        }
+
+        // Fonction générique pour afficher un message (utilisée pour les erreurs API)
+        function displayMessage(message, type = 'info') {
+            const messageArea = document.getElementById('message-area');
+            messageArea.innerHTML = `<p>${message}</p>`;
+            messageArea.className = `message-area ${type}`; // Ajoute une classe pour le style
+            messageArea.style.display = 'block';
+        }
+
+
+        // Lance la récupération des données toutes les 3 secondes (3000 ms)
+        setInterval(fetchSystemData, 3000);
+
+        // Récupère les données au chargement initial de la page
+        fetchSystemData();
+    </script>
+</body>
+</html>
