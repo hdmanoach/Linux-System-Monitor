@@ -28,6 +28,12 @@
             color: #0056b3;
             text-align: center;
         }
+        #os-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-style: italic;
+            color: #6c757d;
+        }
         .charts-container {
             display: flex;
             justify-content: space-around;
@@ -99,7 +105,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Moniteur Système Linux</h1>
+        <h1>Moniteur Système</h1>
+        <div id="os-info">Système d'exploitation : --</div>
         
         <div id="message-area" class="message-area"></div>
 
@@ -216,6 +223,7 @@
                 document.getElementById('disk-details').textContent = `${data.disk_used_gb} / ${data.disk_total_gb} GB`;
                 document.getElementById('net-sent').textContent = `${data.net_bytes_sent_gb} GB`;
                 document.getElementById('net-recv').textContent = `${data.net_bytes_recv_gb} GB`;
+                document.getElementById('os-info').textContent = `Système d'exploitation : ${data.platform}`;
 
                 checkThresholds(data);
             } catch (error) {

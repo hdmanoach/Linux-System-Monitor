@@ -1,14 +1,17 @@
 from flask import Flask, jsonify, render_template
 import psutil
-import subprocess
+import platform
 import os
 import sqlite3
 import atexit
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
+from disk_utils import get_disk_usage_linux, get_disk_usage_cross_platform
+
 
 # --- Configuration de la base de données et du planificateur ---
 DATABASE = 'monitor.db'
+
 
 def init_db():
     conn = sqlite3.connect(DATABASE)
@@ -76,27 +79,26 @@ def system_data():
         'disk_used_gb': round(disk_usage.used / (1024**3), 2),
         'net_bytes_sent_gb': round(net_io.bytes_sent / (1024**3), 2),
         'net_bytes_recv_gb': round(net_io.bytes_recv / (1024**3), 2),
+        'platform': platform.system(), # Ajout de la plateforme
     }
     return jsonify(data)
 
 @app.route('/disk-usage-details')
 def disk_usage_details():
-    # ... (code existant)
-    try:
-        home_dir = os.path.expanduser('~')
-        command = f"du -sh {home_dir}/* | sort -rh | head -n 10"
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        if result.returncode != 0:
-            return jsonify({"error": "Erreur lors de l'exécution de la commande 'du'", "details": result.stderr}), 500
-        lines = result.stdout.strip().split('\n')
-        top_files = []
-        for line in lines:
-            if line:
-                size, path = line.split('\t', 1)
-                top_files.append({"size": size.strip(), "path": path.strip()})
-        return jsonify(top_files)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    home_dir = os.path.expanduser('~')
+    
+    # Détecte le système d'exploitation pour choisir la bonne fonction
+    current_os = platform.system()
+    if current_os == "Linux":
+        # Utilise la méthode rapide et optimisée pour Linux
+        data = get_disk_usage_linux(home_dir)
+    else:
+        # Utilise la méthode multiplateforme (plus lente) pour Windows et autres OS
+        data = get_disk_usage_cross_platform(home_dir)
+        
+    if isinstance(data, dict) and "error" in data:
+        return jsonify(data), 500
+    return jsonify(data)
 
 @app.route('/processes')
 def top_processes():
