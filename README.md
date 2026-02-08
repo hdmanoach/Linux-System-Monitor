@@ -1,6 +1,6 @@
 # 🖥️ Linux System Monitor
 
-Une application web moderne et intuitive pour surveiller en temps réel les ressources système Linux (CPU, mémoire, disque) avec analyse IA intégrée.
+Une application web moderne et intuitive pour surveiller en temps réel les ressources système Linux, Windows (CPU, mémoire, disque) avec analyse IA intégrée.
 
 ## 📋 Table des matières
 
