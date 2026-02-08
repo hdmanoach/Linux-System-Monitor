@@ -50,7 +50,7 @@ Une application web moderne et intuitive pour surveiller en temps réel les ress
 
 ### 1. Cloner le dépôt
 ```bash
-git clone https://github.com/your-username/Linux-System-Monitor.git
+git clone https://github.com/hdmanoach/Linux-System-Monitor.git
 cd Linux-System-Monitor
 ```
 
@@ -245,7 +245,8 @@ Redémarrez l'application ou supprimez `monitor.db`.
 
 ## 📸 Captures d'écran
 
-*[À ajouter]*
+<img width="1366" height="639" alt="image" src="https://github.com/user-attachments/assets/2fa142e5-26ee-4c8c-a3e4-8fef290a0932" />
+
 
 ## 💡 Conseils d'utilisation
 
@@ -270,13 +271,13 @@ Ce projet est licensé sous la MIT License - voir le fichier [LICENSE](LICENSE) 
 
 ## 👨‍💻 Auteur
 
-Créé avec ❤️ par [Manoach](https://github.com/your-username)
+Créé avec ❤️ par [Manoach](https://github.com/hdmanoach)
 
 ## 📞 Support
 
-- 📧 Email : your-email@example.com
-- 🐛 Issues : [Créer une issue](https://github.com/your-username/Linux-System-Monitor/issues)
-- 💬 Discussions : [Rejoindre les discussions](https://github.com/your-username/Linux-System-Monitor/discussions)
+- 📧 Email : hdmanoach@gmail.com
+- 🐛 Issues : [Créer une issue](https://github.com/hdmanoach/Linux-System-Monitor/issues)
+- 💬 Discussions : [Rejoindre les discussions](https://github.com/hdmanoach/Linux-System-Monitor/discussions)
 
 ---
 
