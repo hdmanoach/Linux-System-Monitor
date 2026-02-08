@@ -1,6 +1,9 @@
-# Environnement virtuel Python
-venv/
-
-# Dossiers de cache Python
+# Python
 __pycache__/
 *.pyc
+
+# Virtual environment
+venv/
+
+# Database
+*.db

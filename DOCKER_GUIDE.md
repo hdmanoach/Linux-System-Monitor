@@ -1,91 +1,70 @@
-# Guide d'Utilisation de Docker pour le Moniteur Système
+# Guide d'utilisation de Docker pour le Moniteur Système
 
-Ce guide explique comment construire et exécuter l'application Moniteur Système en utilisant Docker.
+Ce guide explique comment construire une image Docker pour l'application et comment lancer un conteneur basé sur cette image.
 
----
+## Prérequis
 
-## 1. Fichiers de Configuration Docker
+- Docker doit être installé sur votre machine.
 
-Le projet contient deux fichiers essentiels pour Docker :
+## Étape 1 : Construire l'image Docker
 
-### a. `Dockerfile`
+1.  Ouvrez un terminal à la racine de votre projet (là où se trouve le `Dockerfile`).
+2.  Exécutez la commande suivante pour construire l'image.
 
-Ce fichier est la "recette" pour construire notre image Docker. Voici ce que chaque ligne signifie :
+    -   `docker build`: C'est la commande pour construire une image.
+    -   `-t system-monitor`: Le `-t` (tag) donne un nom à votre image (ici, `system-monitor`). Vous pouvez choisir un autre nom.
+    -   `.`: Le point indique que le contexte de la construction est le répertoire actuel.
 
-```dockerfile
-# Utilise une image Python officielle, légère et optimisée.
-FROM python:3.9-slim
+    ```bash
+    docker build -t system-monitor .
+    ```
 
-# Crée et définit le répertoire de travail à l'intérieur du conteneur.
-WORKDIR /app
+    Cette commande va suivre les instructions du `Dockerfile`, télécharger l'image de base, installer les dépendances et copier vos fichiers pour créer une image nommée `system-monitor`.
 
-# Copie d'abord le fichier des dépendances. Docker met en cache cette étape.
-# Si le fichier ne change pas, Docker réutilisera le cache, accélérant la construction.
-COPY requirements.txt .
+## Étape 2 : Lancer un conteneur à partir de l'image
 
-# Installe les dépendances Python listées dans requirements.txt.
-RUN pip install --no-cache-dir -r requirements.txt
+Une fois l'image construite, vous pouvez lancer un conteneur.
 
-# Copie tous les autres fichiers du projet (app.py, disk_utils.py, templates/, etc.)
-COPY . .
+1.  **Récupérez votre clé API Gemini.** C'est très important, car elle doit être fournie au conteneur.
 
-# Informe Docker que le conteneur écoutera sur le port 8000.
-EXPOSE 8000
+2.  Exécutez la commande suivante pour démarrer le conteneur :
 
-# La commande qui sera exécutée au démarrage du conteneur.
-# On utilise Gunicorn, un serveur de production WSGI, plus robuste que le serveur de test de Flask.
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "app:app"]
-```
+    -   `docker run`: C'est la commande pour lancer un conteneur.
+    -   `--rm`: Supprime automatiquement le conteneur lorsque vous l'arrêtez. C'est pratique pour le nettoyage.
+    -   `-d`: Lance le conteneur en mode "détaché" (en arrière-plan). Si vous voulez voir les logs en direct, supprimez cette option.
+    -   `-p 8080:8000`: Le `-p` (publish) mappe un port de votre machine (ici, `8080`) au port exposé par le conteneur (ici, `8000`). Vous pourrez accéder à l'application via `http://localhost:8080`.
+    -   `-e GEMINI_API_KEY="VOTRE_CLE_API_ICI"`: Le `-e` (environment) définit une variable d'environnement à l'intérieur du conteneur. C'est la méthode sécurisée pour passer votre clé API. **Remplacez `VOTRE_CLE_API_ICI` par votre véritable clé.**
+    -   `--name monitor-app`: Donne un nom facile à retenir à votre conteneur.
+    -   `system-monitor`: Le nom de l'image que vous voulez utiliser.
 
-### b. `.dockerignore`
+    ```bash
+    docker run --rm -d -p 8080:8000 -e GEMINI_API_KEY="VOTRE_CLE_API_ICI" --name monitor-app system-monitor
+    ```
 
-Ce fichier fonctionne comme un `.gitignore`. Il liste tous les fichiers et dossiers que Docker doit ignorer lors de la construction de l'image. C'est utile pour :
-- **Réduire la taille de l'image :** En excluant des dossiers lourds comme `venv/`.
-- **Accélérer la construction :** En évitant de copier des fichiers inutiles.
-- **Sécurité :** En s'assurant que des fichiers sensibles (comme `.git` ou des fichiers de configuration locaux) ne se retrouvent pas dans l'image.
+## Étape 3 : Accéder à l'application
 
----
+Ouvrez votre navigateur web et allez à l'adresse suivante :
 
-## 2. Construire l'Image Docker
+[http://localhost:8080](http://localhost:8080)
 
-Pour construire l'image, ouvrez un terminal à la racine du projet et exécutez la commande suivante :
+## Commandes Docker utiles
 
-```bash
-docker build -t moniteur-systeme .
-```
+-   **Pour voir les logs du conteneur (si vous l'avez lancé en mode détaché) :**
+    ```bash
+    docker logs monitor-app
+    ```
 
-- `docker build` : La commande pour construire une image.
-- `-t moniteur-systeme` : Donne un "tag" (un nom) à notre image. Ici, nous l'appelons `moniteur-systeme`.
-- `.` : Indique à Docker d'utiliser le `Dockerfile` présent dans le répertoire actuel.
+-   **Pour suivre les logs en direct :**
+    ```bash
+    docker logs -f monitor-app
+    ```
 
----
+-   **Pour arrêter le conteneur :**
+    ```bash
+    docker stop monitor-app
+    ```
 
-## 3. Exécuter le Conteneur
-
-Une fois l'image construite, vous pouvez démarrer un conteneur avec cette commande :
-
-```bash
-docker run -d -p 5000:8000 --name moniteur-app moniteur-systeme
-```
-
-- `docker run` : La commande pour démarrer un nouveau conteneur.
-- `-d` : **Mode détaché**. Le conteneur s'exécute en arrière-plan et ne bloque pas votre terminal.
-- `-p 5000:8000` : **Mappe les ports**. Cela redirige le port `5000` de votre machine hôte vers le port `8000` du conteneur (où Gunicorn écoute). Vous pourrez donc accéder à l'application via `http://localhost:5000`.
-- `--name moniteur-app` : Donne un nom facile à retenir à votre conteneur en cours d'exécution.
-- `moniteur-systeme` : Le nom de l'image que nous voulons utiliser.
-
-### Gérer le Conteneur
-
-- Pour voir les logs de l'application : `docker logs moniteur-app`
-- Pour arrêter le conteneur : `docker stop moniteur-app`
-- Pour le redémarrer : `docker start moniteur-app`
-- Pour le supprimer : `docker rm moniteur-app`
-
-### Cas d'un Déploiement sur Serveur
-
-La procédure est **exactement la même** sur un serveur distant (VPS, machine dédiée, etc.) où Docker est installé.
-
-Pour un véritable environnement de production, il est recommandé de placer un **reverse proxy** (comme Nginx ou Traefik) devant votre conteneur. Le reverse proxy peut gérer :
-- Le **HTTPS** avec des certificats SSL/TLS (Let's Encrypt).
-- Le routage d'un nom de domaine (ex: `stats.votredomaine.com`) vers le conteneur.
-- La mise en cache et la répartition de charge.
+-   **Pour lister les conteneurs en cours d'exécution :**
+    ```bash
+    docker ps
+    ```

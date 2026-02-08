@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.23.0/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script> <!-- Ajout de marked.js -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -101,70 +102,359 @@
         .process-table tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        .clickable-row:hover {
+            cursor: pointer;
+            background-color: #e9ecef;
+        }
+
+        /* --- Navigation Bar Styles --- */
+        :root {
+            --nav-height: 60px;
+        }
+        body {
+            padding-top: var(--nav-height); /* Prevent content from hiding behind nav */
+        }
+        .main-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--nav-height);
+            background-color: #333;
+            display: flex;
+            justify-content: flex-end; /* Push items to the right */
+            align-items: center;
+            z-index: 1000;
+        }
+        .nav-links {
+            list-style: none;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+        .nav-links a {
+            display: block;
+            padding: 0 1em;
+            line-height: var(--nav-height);
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+        .nav-links a:hover {
+            background-color: #007bff;
+        }
+        .search-form {
+            margin-right: 1em; /* Add some space to the right */
+        }
+        .search-form input[type="search"] {
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+        .search-form button {
+            padding: 5px 10px;
+            border-radius: 3px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .nav-toggle {
+            display: none; /* Hidden on desktop */
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            padding: 1em;
+        }
+        .hamburger {
+            display: block;
+            position: relative;
+            width: 2em;
+            height: 3px;
+            background-color: white;
+            transition: transform 0.3s ease;
+        }
+        .hamburger::before, .hamburger::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: white;
+            transition: transform 0.3s ease;
+        }
+        .hamburger::before { top: -8px; }
+        .hamburger::after { bottom: -8px; }
+
+        /* --- Responsive Styles for Navigation --- */
+        @media (max-width: 768px) {
+            .nav-toggle {
+                display: block; /* Show hamburger on mobile */
+            }
+            .nav-links {
+                position: absolute;
+                top: var(--nav-height);
+                left: 0;
+                width: 100%;
+                flex-direction: column;
+                background-color: #333;
+                transform: scaleY(0);
+                transform-origin: top;
+                transition: transform 0.3s ease-out;
+            }
+            .nav-links.active {
+                transform: scaleY(1);
+            }
+            .nav-links a {
+                line-height: 45px;
+                text-align: center;
+            }
+        }
+        .content-section {
+            display: none; /* Hide all sections by default */
+        }
+        .content-section.active {
+            display: block; /* Show the active section */
+        }
+        .table-responsive-wrapper {
+            overflow-x: auto; /* Make tables scrollable on small screens */
+            -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+        }
+        /* --- Styles pour la fenêtre modale --- */
+        .modal {
+            display: none; /* Caché par défaut */
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+        .modal-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+        }
+        .modal-header h2 {
+            margin: 0;
+            color: #0056b3;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-body {
+            padding: 15px;
+            line-height: 1.8;
+        }
+        #ai-analysis-content.loading {
+            text-align: center;
+            font-style: italic;
+            color: #6c757d;
+        }
+        /* Styles pour le rendu Markdown */
+        #ai-analysis-content h1, #ai-analysis-content h2, #ai-analysis-content h3 {
+            color: #0056b3;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 20px;
+        }
+        #ai-analysis-content ul, #ai-analysis-content ol {
+            padding-left: 20px;
+        }
+        #ai-analysis-content p {
+            margin-bottom: 10px;
+        }
+        #ai-analysis-content code {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        #ai-analysis-content pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #ai-analysis-content pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
     </style>
 </head>
 <body>
+    <nav class="main-nav">
+        <form action="/search" method="get" class="search-form">
+            <input type="search" name="query" placeholder="Rechercher..." aria-label="Search">
+            <button type="submit">Rechercher</button>
+        </form>
+        <button class="nav-toggle" aria-label="toggle navigation">
+            <span class="hamburger"></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="#system-overview" class="nav-link">Vue d'ensemble</a></li>
+            <li><a href="#history-section-wrapper" class="nav-link">Historique</a></li>
+            <li><a href="#network-section-wrapper" class="nav-link">Réseau</a></li>
+            <li><a href="#processes-section-wrapper" class="nav-link">Processus</a></li>
+            <li><a href="#disk-usage-section-wrapper" class="nav-link">Usage Disque</a></li>
+            <li><a href="#services-section-wrapper" class="nav-link">Services</a></li>
+        </ul>
+    </nav>
     <div class="container">
         <h1>Moniteur Système</h1>
         <div id="os-info">Système d'exploitation : --</div>
         
         <div id="message-area" class="message-area"></div>
 
-        <div class="charts-container">
-            <div class="chart-box">
-                <h3>Utilisation CPU</h3>
-                <canvas id="cpuChart"></canvas>
-            </div>
-            <div class="chart-box">
-                <h3>Utilisation Mémoire</h3>
-                <canvas id="memoryChart"></canvas>
-                <div id="memory-details" class="metric-details">--/-- GB</div>
-            </div>
-            <div class="chart-box">
-                <h3>Utilisation Disque</h3>
-                <canvas id="diskChart"></canvas>
-                <div id="disk-details" class="metric-details">--/-- GB</div>
+        <div class="content-section active" id="system-overview">
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3>Utilisation CPU</h3>
+                    <canvas id="cpuChart"></canvas>
+                </div>
+                <div class="chart-box">
+                    <h3>Utilisation Mémoire</h3>
+                    <canvas id="memoryChart"></canvas>
+                    <div id="memory-details" class="metric-details">--/-- GB</div>
+                </div>
+                <div class="chart-box">
+                    <h3>Utilisation Disque</h3>
+                    <canvas id="diskChart"></canvas>
+                    <div id="disk-details" class="metric-details">--/-- GB</div>
+                </div>
             </div>
         </div>
 
-        <h2 style="margin-top: 30px;">Historique d'Utilisation (24h)</h2>
-        <canvas id="historyChart" height="100"></canvas>
-
-
-        <h2 style="margin-top: 30px;">Activité Réseau (Total)</h2>
-        <div class="metric">
-            <strong>Données Envoyées:</strong>
-            <span id="net-sent" class="value">-- GB</span>
-        </div>
-        <div class="metric">
-            <strong>Données Reçues:</strong>
-            <span id="net-recv" class="value">-- GB</span>
+        <div class="content-section" id="history-section-wrapper">
+            <h2 style="margin-top: 30px;" id="history-section">Historique d'Utilisation (24h)</h2>
+            <canvas id="historyChart" height="100"></canvas>
         </div>
 
-        <h2 style="margin-top: 30px;">Top 10 des Processus Gourmands (par CPU)</h2>
-        <table class="process-table">
-            <thead>
-                <tr>
-                    <th>PID</th>
-                    <th>Nom</th>
-                    <th>Utilisateur</th>
-                    <th>% CPU</th>
-                    <th>% Mémoire</th>
-                </tr>
-            </thead>
-            <tbody id="process-list">
-                <!-- Les processus seront insérés ici par JavaScript -->
-            </tbody>
-        </table>
+        <div class="content-section" id="network-section-wrapper">
+            <h2 style="margin-top: 30px;" id="network-section">Activité Réseau (Total)</h2>
+            <div class="metric">
+                <strong>Données Envoyées:</strong>
+                <span id="net-sent" class="value">-- GB</span>
+            </div>
+            <div class="metric">
+                <strong>Données Reçues:</strong>
+                <span id="net-recv" class="value">-- GB</span>
+            </div>
+        </div>
 
-        <h2 style="margin-top: 30px;">Top 10 des Fichiers/Dossiers Volumineux</h2>
-        <div id="disk-hoggers">
-            <p>Chargement des données...</p>
+        <div class="content-section" id="processes-section-wrapper">
+            <h2 style="margin-top: 30px;" id="processes-section">Top 10 des Processus Gourmands (par CPU)</h2>
+            <div class="table-responsive-wrapper">
+                <table class="process-table">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Nom</th>
+                            <th>Utilisateur</th>
+                            <th>% CPU</th>
+                            <th>% Mémoire</th>
+                        </tr>
+                    </thead>
+                    <tbody id="process-list">
+                        <!-- Les processus seront insérés ici par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="content-section" id="disk-usage-section-wrapper">
+            <h2 style="margin-top: 30px;" id="disk-usage-section">Top 10 des Fichiers/Dossiers Volumineux</h2>
+            <div id="drive-buttons-container" style="margin-bottom: 15px;">
+                <!-- Les boutons pour chaque disque seront injectés ici sur les OS non-Linux -->
+            </div>
+            <div class="table-responsive-wrapper">
+                <table class="process-table" id="disk-hoggers-table">
+                    <thead>
+                        <tr>
+                            <th>Taille</th>
+                            <th>Chemin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="disk-hoggers-list">
+                        <!-- Les données seront insérées ici -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="disk-hoggers-message">
+                <p>Chargement des données...</p>
+            </div>
+        </div>
+
+        <div class="content-section" id="services-section-wrapper">
+            <h2 style="margin-top: 30px;" id="services-section">État des Services Linux</h2>
+            <div id="services-status-container">
+                <p id="services-status-message">Chargement des services...</p>
+                <div class="table-responsive-wrapper">
+                    <table class="process-table" id="services-table" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Unité</th>
+                                <th>Chargé</th>
+                                <th>Actif</th>
+                                <th>Sous</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-list">
+                            <!-- Les services seront insérés ici par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ai-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-button">&times;</span>
+                <h2 id="ai-modal-title">Analyse IA</h2>
+            </div>
+            <div class="modal-body">
+                <div id="ai-analysis-content">
+                    <!-- Le contenu de l'analyse sera injecté ici -->
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        let cpuChart, memoryChart, diskChart;
+        let cpuChart, memoryChart, diskChart, currentOS;
 
         // Fonction pour créer un graphique de type "jauge"
         function createGaugeChart(ctx, label) {
@@ -223,7 +513,10 @@
                 document.getElementById('disk-details').textContent = `${data.disk_used_gb} / ${data.disk_total_gb} GB`;
                 document.getElementById('net-sent').textContent = `${data.net_bytes_sent_gb} GB`;
                 document.getElementById('net-recv').textContent = `${data.net_bytes_recv_gb} GB`;
-                document.getElementById('os-info').textContent = `Système d'exploitation : ${data.platform}`;
+                
+                // On met à jour la variable globale et l'affichage
+                currentOS = data.platform;
+                document.getElementById('os-info').textContent = `Système d'exploitation : ${currentOS}`;
 
                 checkThresholds(data);
             } catch (error) {
@@ -246,6 +539,10 @@
 
                 processes.forEach(p => {
                     const row = document.createElement('tr');
+                    row.className = 'clickable-row';
+                    row.setAttribute('data-type', 'process');
+                    row.setAttribute('data-info', JSON.stringify(p));
+
                     row.innerHTML = `
                         <td>${p.pid}</td>
                         <td>${p.name}</td>
@@ -331,30 +628,83 @@
             }
         }
         
-        async function fetchDiskUsageDetails() {
-            const container = document.getElementById('disk-hoggers');
+        async function fetchDiskUsageDetails(path = '') {
+            const container = document.getElementById('disk-hoggers-list');
+            const messageContainer = document.getElementById('disk-hoggers-message');
+            const table = document.getElementById('disk-hoggers-table');
+            
+            messageContainer.style.display = 'block';
+            messageContainer.innerHTML = '<p>Analyse du disque en cours, veuillez patienter...</p>';
+            table.style.display = 'none';
+            container.innerHTML = '';
+
+
             try {
-                const response = await fetch('/disk-usage-details');
+                // Construit l'URL avec le paramètre de chemin si fourni
+                const url = path ? `/disk-usage-details?path=${encodeURIComponent(path)}` : '/disk-usage-details';
+                const response = await fetch(url);
                 const data = await response.json();
                 if (data.error) throw new Error(data.details || data.error);
 
+                container.innerHTML = ''; // Vide la liste
+
                 if (data.length === 0) {
-                    container.innerHTML = '<p>Aucun fichier ou dossier trouvé.</p>';
+                    messageContainer.innerHTML = '<p>Aucun fichier ou dossier trouvé.</p>';
+                    table.style.display = 'none';
                     return;
                 }
                 
-                const ul = document.createElement('ul');
-                ul.className = 'disk-hog-list';
                 data.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<span class="value">${item.size}</span> <span class="path">${item.path}</span>`;
-                    ul.appendChild(li);
+                    const row = document.createElement('tr');
+                    row.className = 'clickable-row';
+                    row.setAttribute('data-type', 'disk');
+                    row.setAttribute('data-info', JSON.stringify(item));
+                    row.innerHTML = `
+                        <td>${item.size}</td>
+                        <td>${item.path}</td>
+                    `;
+                    container.appendChild(row);
                 });
-                container.innerHTML = '';
-                container.appendChild(ul);
+                
+                messageContainer.style.display = 'none';
+                table.style.display = 'table';
+
             } catch (error) {
                 console.error('Erreur (détails disque):', error);
-                container.innerHTML = '<p>Erreur lors du chargement des détails du disque.</p>';
+                messageContainer.innerHTML = `<p>Erreur lors du chargement des détails du disque pour le chemin : ${path}.</p>`;
+                table.style.display = 'none';
+            }
+        }
+
+        // Nouvelle fonction pour configurer l'UI d'analyse de disque
+        async function setupDiskAnalysisUI() {
+            try {
+                // On utilise la variable `currentOS` qui est maintenant disponible
+                if (currentOS !== "Linux") {
+                    // Si ce n'est pas Linux, on affiche les boutons de disque
+                    const drivesResponse = await fetch('/drives');
+                    const drives = await drivesResponse.json();
+                    const buttonsContainer = document.getElementById('drive-buttons-container');
+
+                    buttonsContainer.innerHTML = '<strong>Choisissez un disque à analyser :</strong> ';
+                    drives.forEach(drive => {
+                        const button = document.createElement('button');
+                        button.textContent = `Analyser ${drive}`;
+                        button.style.margin = '5px';
+                        button.onclick = () => fetchDiskUsageDetails(drive);
+                        buttonsContainer.appendChild(button);
+                    });
+                    
+                    // On vide le message initial
+                    document.getElementById('disk-hoggers-message').innerHTML = '<p>Veuillez sélectionner un disque pour démarrer l\'analyse.</p>';
+
+                } else {
+                    // Si c'est Linux, on lance l'analyse directement comme avant
+                    fetchDiskUsageDetails();
+                }
+            } catch (error) {
+                console.error('Erreur lors de la configuration de l\'UI disque:', error);
+                document.getElementById('disk-hoggers-message').innerHTML = '<p>Impossible de configurer l\'analyse des disques.</p>';
             }
         }
 
@@ -379,14 +729,195 @@
             memoryChart = createGaugeChart(document.getElementById('memoryChart').getContext('2d'), 'Mémoire');
             diskChart = createGaugeChart(document.getElementById('diskChart').getContext('2d'), 'Disque');
             
-            fetchSystemData();
-            fetchDiskUsageDetails();
+            // On fait un premier appel pour récupérer les données et surtout le type d'OS
+            fetchSystemData().then(() => {
+                // Une fois qu'on connaît l'OS, on configure l'UI
+                setupDiskAnalysisUI(); // Configure les boutons de disque si besoin
+
+                // On active la section "Services" uniquement si c'est Linux
+                if (currentOS === 'Linux') {
+                    fetchServicesStatus();
+                    setInterval(fetchServicesStatus, 10000); // Mettre à jour toutes les 10 secondes
+                } else {
+                    // Sinon, on cache le lien de navigation et la section
+                    const servicesNavLink = document.querySelector('a[href="#services-section-wrapper"]');
+                    if (servicesNavLink) {
+                        servicesNavLink.parentElement.style.display = 'none';
+                    }
+                    const servicesSection = document.getElementById('services-section-wrapper');
+                    if (servicesSection) {
+                        servicesSection.style.display = 'none';
+                    }
+                }
+            });
+            
             fetchProcessData();
-            fetchHistoryData(); // Appel pour le graphique d'historique
+            fetchHistoryData();
 
             setInterval(fetchSystemData, 3000);
             setInterval(fetchProcessData, 5000);
+
+            // --- Navigation and Hamburger Menu Logic ---
+            const navToggle = document.querySelector('.nav-toggle');
+            const navLinksContainer = document.querySelector('.nav-links');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            // Function to switch tabs
+            function showSection(targetId) {
+                // Hide all content sections
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                // Remove active class from all nav links
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                });
+
+                // Show the target section and mark its link as active
+                document.querySelector(targetId).classList.add('active');
+                const activeLink = document.querySelector(`.nav-link[href="${targetId}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+            }
+
+            // Hamburger toggle
+            navToggle.addEventListener('click', () => {
+                navLinksContainer.classList.toggle('active');
+            });
+
+            // Set up link listeners
+            navLinks.forEach(link => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    showSection(targetId);
+                    // Close hamburger menu after click
+                    navLinksContainer.classList.remove('active');
+                });
+            });
+
+            // Show default section on page load
+            showSection('#system-overview');
+
+            // --- Logique pour la modale d'analyse IA ---
+            const modal = document.getElementById('ai-modal');
+            const modalTitle = document.getElementById('ai-modal-title');
+            const modalContent = document.getElementById('ai-analysis-content');
+            const closeBtn = document.querySelector('.close-button');
+
+            function showModal(title, content) {
+                modalTitle.textContent = title;
+                modalContent.innerHTML = content;
+                modal.style.display = 'block';
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+            }
+
+            // Fermer la modale en cliquant sur le bouton (X) ou en dehors
+            closeBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            async function handleAnalysisClick(event) {
+                const row = event.target.closest('.clickable-row');
+                if (!row) return;
+
+                const type = row.dataset.type;
+                const info = JSON.parse(row.dataset.info);
+                let title = '';
+
+                switch(type) {
+                    case 'process': title = `Analyse du processus: ${info.name}`; break;
+                    case 'service': title = `Analyse du service: ${info.unit}`; break;
+                    case 'disk': title = `Analyse de l'élément: ${info.path}`; break;
+                }
+
+                showModal(title, '<p class="loading">Analyse en cours par l\'IA Monitor...</p>');
+
+                try {
+                    const response = await fetch('/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: type, data: info })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Erreur HTTP ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    // Convertir le Markdown en HTML en utilisant marked.js
+                    modalContent.innerHTML = marked.parse(result.analysis);
+
+                } catch (error) {
+                    modalContent.innerHTML = `<p style="color: red;">Erreur: ${error.message}</p>`;
+                }
+            }
+
+            // Délégation d'événement pour tous les clics sur les lignes
+            document.addEventListener('click', handleAnalysisClick);
         });
+
+        async function fetchServicesStatus() {
+            const servicesListBody = document.getElementById('services-list');
+            const servicesStatusMessage = document.getElementById('services-status-message');
+            const servicesTable = document.getElementById('services-table');
+
+            try {
+                // We don't want to show the loading message on every refresh
+                // servicesStatusMessage.textContent = 'Chargement des services...';
+                // servicesTable.style.display = 'none';
+                
+                const response = await fetch('/services_status');
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                servicesListBody.innerHTML = ''; // Clear previous list
+
+                if (data.length === 0) {
+                    servicesStatusMessage.textContent = 'Aucun service système à afficher ou fonctionnalité non disponible sur cet OS.';
+                    servicesStatusMessage.style.display = 'block';
+                    servicesTable.style.display = 'none';
+                    return;
+                }
+
+                data.forEach(service => {
+                    const row = document.createElement('tr');
+                    row.className = 'clickable-row';
+                    row.setAttribute('data-type', 'service');
+                    row.setAttribute('data-info', JSON.stringify(service));
+
+                    row.innerHTML = `
+                        <td>${service.unit}</td>
+                        <td>${service.load}</td>
+                        <td>${service.active}</td>
+                        <td>${service.sub}</td>
+                        <td>${service.description}</td>
+                    `;
+                    servicesListBody.appendChild(row);
+                });
+                servicesStatusMessage.style.display = 'none';
+                servicesTable.style.display = 'table';
+
+            } catch (error) {
+                console.error('Erreur lors de la récupération de l\'état des services:', error);
+                servicesStatusMessage.textContent = `Erreur: ${error.message}. Impossible de charger l'état des services.`;
+                servicesStatusMessage.style.display = 'block';
+                servicesTable.style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>

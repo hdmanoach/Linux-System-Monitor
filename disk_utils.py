@@ -2,7 +2,47 @@ import subprocess
 import os
 
 def get_disk_usage_linux(path, top_n=10):
-    # ... (code existant) ...
+    """
+    Obtient les N plus gros fichiers/dossiers pour un chemin donné en utilisant
+    la commande `du`, qui est très rapide sur Linux.
+    """
+    try:
+        # Exécute la commande `du` pour lister les tailles et `sort` pour les trier.
+        # `du -a` : Affiche les fichiers et les dossiers.
+        # `--max-depth=1` : Limite l'analyse au premier niveau du `path`.
+        # `sort -rh` : Trie par taille lisible par l'homme, en ordre décroissant.
+        # `head -n {top_n}` : Prend les N premiers résultats.
+        command = f"du -ah --max-depth=1 {path} | sort -rh | head -n {top_n}"
+        
+        result = subprocess.run(
+            command, 
+            shell=True, 
+            capture_output=True, 
+            text=True, 
+            check=True
+        )
+        
+        lines = result.stdout.strip().split('\n')
+        
+        top_files = []
+        for line in lines:
+            if not line:
+                continue
+            # Sépare la taille (ex: "1.2G") du chemin
+            size, file_path = line.split('\t', 1)
+            top_files.append({"size": size.strip(), "path": file_path.strip()})
+            
+        return top_files
+
+    except subprocess.CalledProcessError as e:
+        # Gère les erreurs si la commande `du` échoue
+        error_message = e.stderr.strip()
+        print(f"Erreur avec la commande 'du': {error_message}")
+        return {"error": "La commande 'du' a échoué.", "details": error_message}
+    except Exception as e:
+        # Gère les autres erreurs inattendues
+        print(f"Erreur inattendue lors du scan des dossiers : {e}")
+        return {"error": "Une erreur inattendue est survenue.", "details": str(e)}
 
 def get_disk_usage_cross_platform(path, top_n=10):
     """
@@ -61,4 +101,39 @@ def get_disk_usage_cross_platform(path, top_n=10):
     except Exception as e:
         print(f"Erreur lors du scan des dossiers : {e}")
         return {"error": "Erreur lors du scan des dossiers", "details": str(e)}
+
+def search_disk(query, search_path='~'):
+    """
+    Recherche des fichiers et des dossiers contenant la chaîne de requête dans leur nom.
+    Limite la recherche au chemin spécifié (par défaut, le répertoire personnel de l'utilisateur).
+    """
+    matches = []
+    # Étend le chemin '~' au répertoire personnel complet
+    abs_search_path = os.path.expanduser(search_path)
+    
+    # Limite le nombre de résultats pour éviter de surcharger
+    MAX_RESULTS = 100 
+    
+    try:
+        for root, dirs, files in os.walk(abs_search_path, topdown=True):
+            # Filtre les répertoires à ne pas visiter pour améliorer la performance
+            # Par exemple, on pourrait exclure .git, __pycache__, etc.
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            for name in files + dirs:
+                if len(matches) >= MAX_RESULTS:
+                    break
+                if query.lower() in name.lower():
+                    full_path = os.path.join(root, name)
+                    matches.append(full_path)
+            
+            if len(matches) >= MAX_RESULTS:
+                break
+                
+        return matches
+
+    except Exception as e:
+        print(f"Erreur lors de la recherche sur le disque : {e}")
+        return {"error": "Erreur lors de la recherche", "details": str(e)}
+
 

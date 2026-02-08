@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Résultats de la recherche pour "{{ results.query }}"</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #0056b3;
+        }
+        .results-section {
+            margin-bottom: 30px;
+        }
+        .process-table, .disk-table, .service-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .process-table th, .process-table td,
+        .disk-table th, .disk-table td,
+        .service-table th, .service-table td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .process-table th, .disk-table th, .service-table th {
+            background-color: #007bff;
+            color: white;
+        }
+        .no-results {
+            font-style: italic;
+            color: #6c757d;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        /* Styles pour rendre les tableaux responsives */
+        .table-responsive-wrapper {
+            overflow-x: auto; /* Active le défilement horizontal */
+            -webkit-overflow-scrolling: touch; /* Rend le défilement plus fluide sur iOS */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">&larr; Retour au moniteur</a>
+        <h1>Résultats de la recherche pour "{{ results.query }}"</h1>
+
+        <!-- Section Processus -->
+        <div class="results-section">
+            <h2>Processus</h2>
+            {% if results.processes %}
+                <div class="table-responsive-wrapper">
+                    <table class="process-table">
+                        <thead>
+                            <tr>
+                                <th>PID</th>
+                                <th>Nom</th>
+                                <th>Utilisateur</th>
+                                <th>% CPU</th>
+                                <th>% Mémoire</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in results.processes %}
+                                <tr>
+                                    <td>{{ p.pid }}</td>
+                                    <td>{{ p.name }}</td>
+                                    <td>{{ p.username or 'N/A' }}</td>
+                                    <td>{{ "%.2f"|format(p.cpu_percent) }}</td>
+                                    <td>{{ "%.2f"|format(p.memory_percent) }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-results">Aucun processus correspondant trouvé.</p>
+            {% endif %}
+        </div>
+
+        <!-- Section Services -->
+        <div class="results-section">
+            <h2>Services</h2>
+            {% if results.services %}
+                <div class="table-responsive-wrapper">
+                    <table class="service-table">
+                        <thead>
+                            <tr>
+                                <th>Unité</th>
+                                <th>Chargé</th>
+                                <th>Actif</th>
+                                <th>Sous</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in results.services %}
+                                <tr>
+                                    <td>{{ s.unit }}</td>
+                                    <td>{{ s.load }}</td>
+                                    <td>{{ s.active }}</td>
+                                    <td>{{ s.sub }}</td>
+                                    <td>{{ s.description }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-results">Aucun service correspondant trouvé.</p>
+            {% endif %}
+        </div>
+
+        <!-- Section Disque -->
+        <div class="results-section">
+            <h2>Fichiers et Dossiers</h2>
+            {% if results.disk %}
+                <div class="table-responsive-wrapper">
+                    <table class="disk-table">
+                        <thead>
+                            <tr>
+                                <th>Chemin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in results.disk %}
+                                <tr>
+                                    <td>{{ item }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="no-results">Aucun fichier ou dossier correspondant trouvé.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
